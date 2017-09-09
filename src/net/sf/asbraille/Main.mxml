@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009"
+                       xmlns:s="library://ns.adobe.com/flex/spark"
+                       xmlns:mx="library://ns.adobe.com/flex/mx"
+                       showStatusBar="false"
+                       width="560"
+                       height="620"
+                       minWidth="460"
+                       minHeight="520"
+                       creationComplete="onCreationComplete()">
+
+    <fx:Script><![CDATA[
+        import mx.core.UIComponent;
+
+        [Bindable]
+        public var labelWidth:int = 82;
+        [Bindable]
+        public var inputWidth:int = 82;
+
+        public var dotSize:Number = 5;
+        public var dotPadding:Number = 2;
+        public var letterGap:Number = 5;
+        public var lineGap:Number = 5;
+        public var selectedColor:uint = 0;
+
+        public var fileDialog:FileDialog = new FileDialog();
+        public var errorDialog:ErrorDialog = new ErrorDialog();
+
+
+        protected var _timer:Timer;
+
+        private var _textCache:String = "";
+
+
+        public function showFileDialog(format:String):void
+        {
+            if (inputArea.text == "")
+            {
+                showErrorDialog("No input text!", "You did not specify any text. Please insert your text in the input box.");
+                return;
+            }
+
+            fileDialog.open(this, true);
+            fileDialog.x = (width - fileDialog.width) / 2;
+            fileDialog.y = (height - fileDialog.height) / 2;
+            fileDialog.setSuffix(format);
+            fileDialog.setTitle("Exporting " + format.toUpperCase() + " file");
+            fileDialog.setFilename("braille." + format);
+            fileDialog.setCurrentDirectory(File.desktopDirectory);
+        }
+
+        public function showErrorDialog(title:String, message:String):void
+        {
+            errorDialog.open(this, true);
+            errorDialog.setTitle(title);
+            errorDialog.setMessage(message);
+            errorDialog.x = (width - errorDialog.width) / 2;
+            errorDialog.y = (height - errorDialog.height) / 2;
+            return;
+        }
+
+        private function onCreationComplete():void
+        {
+            if (!_timer)
+            {
+                _timer = new Timer(500);
+                _timer.addEventListener(TimerEvent.TIMER, onTimerTick);
+                _timer.start();
+            }
+        }
+
+        private function onTimerTick(event:TimerEvent):void
+        {
+            if (valuesChanged())
+            {
+                commitValues();
+                updatePreview();
+            }
+        }
+
+        private function valuesChanged():Boolean
+        {
+            return _textCache != inputArea.text
+                    || picker.selectedColor != selectedColor
+                    || dotSizeStepper.value != dotSize
+                    || dotPaddingStepper.value != dotPadding
+                    || letterGapStepper.value != letterGap
+                    || lineGapStepper.value != lineGap;
+        }
+
+        private function commitValues():void
+        {
+            _textCache = inputArea.text;
+            selectedColor = picker.selectedColor;
+            dotSize = dotSizeStepper.value;
+            dotPadding = dotPaddingStepper.value;
+            letterGap = letterGapStepper.value;
+            lineGap = lineGapStepper.value;
+        }
+
+        private function updatePreview():void
+        {
+            previewArea.removeAllElements();
+            var line:Sprite = PNG.renderSprite(getParagraph());
+            var component:UIComponent = new UIComponent();
+            component.width = line.width;
+            component.height = line.height;
+            component.addChild(line);
+            previewArea.addElement(component);
+        }
+
+        public function getParagraph():Paragraph
+        {
+            var paragraph:Paragraph = Alphabet.encode(inputArea.text);
+            paragraph.dotColor = selectedColor;
+            paragraph.dotAlpha = 1;
+            paragraph.dotSize = dotSize;
+            paragraph.dotPadding = dotPadding;
+            paragraph.letterGap = letterGap;
+            paragraph.lineGap = lineGap;
+            return paragraph;
+        }
+
+        public function writePNG(file:File):void
+        {
+            PNG.writePNG(getParagraph(), file);
+        }
+
+        public function writeSVG(file:File):void
+        {
+            SVG.writeSVG(getParagraph(), file);
+        }
+        ]]></fx:Script>
+
+    <s:VGroup width="100%" height="100%" paddingBottom="16" paddingLeft="16" paddingRight="16" paddingTop="16">
+
+        <s:Label fontSize="22">ASBraille</s:Label>
+        <s:Label fontSize="14">Converts Text to Braille (SVG, Bitmap)</s:Label>
+
+        <s:Spacer/>
+
+        <s:HGroup width="100%" gap="16">
+
+            <s:VGroup width="100%" height="{preferenceGroup.height}">
+                <s:Label fontWeight="bold">Insert Text below</s:Label>
+                <s:TextArea id="inputArea" width="100%" height="100%"/>
+            </s:VGroup>
+
+            <s:VGroup id="preferenceGroup">
+
+                <s:Label fontWeight="bold">Preferences</s:Label>
+
+                <s:HGroup id="colorGroup" verticalAlign="middle">
+                    <s:Label width="{labelWidth}">Color</s:Label>
+                    <s:TextInput width="{inputWidth - picker.width - colorGroup.gap}"
+                                 text="{SVG.toColorString(picker.selectedColor,'').toUpperCase()}" editable="false"
+                                 textAlign="right"/>
+                    <mx:ColorPicker id="picker"/>
+                </s:HGroup>
+
+                <s:HGroup verticalAlign="middle">
+                    <s:Label width="{labelWidth}">Dot Size</s:Label>
+                    <s:NumericStepper id="dotSizeStepper" width="{inputWidth}" textAlign="right" value="5"
+                                      maximum="20"/>
+                </s:HGroup>
+
+                <s:HGroup verticalAlign="middle">
+                    <s:Label width="{labelWidth}">Dot Padding</s:Label>
+                    <s:NumericStepper id="dotPaddingStepper" width="{inputWidth}" textAlign="right" value="2"
+                                      maximum="20"/>
+                </s:HGroup>
+
+                <s:HGroup verticalAlign="middle">
+                    <s:Label width="{labelWidth}">Letter Gap</s:Label>
+                    <s:NumericStepper id="letterGapStepper" width="{inputWidth}" textAlign="right" value="5"
+                                      maximum="40"/>
+                </s:HGroup>
+
+                <s:HGroup verticalAlign="middle">
+                    <s:Label width="{labelWidth}">Line Gap</s:Label>
+                    <s:NumericStepper id="lineGapStepper" width="{inputWidth}" textAlign="right" value="5"
+                                      maximum="100"/>
+                </s:HGroup>
+
+                <s:Spacer/>
+
+                <s:HGroup>
+                    <s:Button label="Export PNG" click="showFileDialog('png');"/>
+                    <s:Button label="Export SVG" click="showFileDialog('svg');"/>
+                </s:HGroup>
+            </s:VGroup>
+
+
+        </s:HGroup>
+
+        <s:Spacer height="8"/>
+
+        <s:Label fontWeight="bold">Preview Area</s:Label>
+
+        <s:BorderContainer width="100%" height="100%">
+            <s:Scroller width="100%" height="100%">
+                <s:VGroup id="previewArea" paddingBottom="10" paddingLeft="10" paddingRight="10" paddingTop="10">
+
+                </s:VGroup>
+            </s:Scroller>
+        </s:BorderContainer>
+
+    </s:VGroup>
+
+</s:WindowedApplication>

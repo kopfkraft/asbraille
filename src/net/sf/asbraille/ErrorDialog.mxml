@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<s:SkinnablePopUpContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+                           xmlns:s="library://ns.adobe.com/flex/spark"
+                           xmlns:mx="library://ns.adobe.com/flex/mx">
+
+    <fx:Script><![CDATA[
+        public function setTitle(title:String):void
+        {
+            panel.title = title;
+        }
+
+        public function setMessage(message:String):void
+        {
+            label.text = message;
+        }
+        ]]></fx:Script>
+
+    <s:Panel id="panel">
+        <s:VGroup width="100%" height="100%" horizontalAlign="center" paddingBottom="16" paddingLeft="16"
+                  paddingRight="16" paddingTop="16">
+            <s:Label id="label" width="300" height="60" textAlign="center" text=""/>
+            <s:Button label="OK" click="close();"/>
+        </s:VGroup>
+    </s:Panel>
+
+</s:SkinnablePopUpContainer>

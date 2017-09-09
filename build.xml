@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="AIR 2.0 Build.XML" basedir=".">
+   
+    <!--external property files -->
+    <property file="${basedir}/ant/user.properties" description="user specific properties" />
+    <property file="${basedir}/ant/proj.properties" description="project specific properties" />
+	<property file="${basedir}/ant/cert.properties" description="creates a temp cert for testing" />
+	
+    <!-- additional flex tasks -->
+    <taskdef name="mxmlc" classname="flex.ant.MxmlcTask" classpath="${FLEX_TASKS}"/>
+    <taskdef name="compc" classname="flex.ant.CompcTask" classpath="${FLEX_TASKS}"/>
+    <taskdef name="asdoc" classname="flex.ant.AsDocTask" classpath="${FLEX_TASKS}"/>
+
+		
+	<!-- resets dirs, compiles & packages air application & digital cert for release -->
+    <target name="deploy" >
+        <antcall target="clean"/>
+        <antcall target="compile"/>
+    	<antcall target="certificate"/>
+    	<antcall target="package air"/>
+    </target>
+
+	<!-- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx SUB-TASKS xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx -->
+	
+    <target name="clean" description="deletes and recreates the build and release dirs">
+        <delete dir="${BUILD_DIR}" failOnError="false" includeEmptyDirs="true" />
+        <delete dir="${RELEASE_DIR}" failOnError="false" includeEmptyDirs="true" />
+        <mkdir dir="${BUILD_DIR}" />
+        <mkdir dir="${RELEASE_DIR}" />
+        <mkdir dir="${CERT_DIR}" />
+    	<copy todir="${BUILD_DIR}"><fileset dir="${ASSET_DIR}"/></copy>
+		<chmod perm="777"><fileset dir="${BUILD_DIR}"></fileset></chmod>
+        <available file="${KEYSTORE}" property="CERTIFICATE_FLAG" />   
+    </target>	
+   
+    <target name="compile"
+        description="compiles the AIR application to a SWF file and places SWF in the build directory to be packaged.">
+        <mxmlc file="${MAIN_FILE}"
+            output="${BUILD_DIR}/${PROJECT_NAME}.swf"
+            target-player="11"
+            locale="${LOCALE}"
+            static-rsls="true"
+            accessible="true"
+            configname="air"
+            debug="false"
+            failonerror="true"
+            fork="true"
+            maxmemory="512m">
+            <source-path path-element="${SOURCE_DIR}"/>
+            <external-library-path file="${FLEX_HOME}/frameworks/libs/air/airglobal.swc" append="true"/>
+            <library-path dir="${LIBRARY_DIR}" includes="*.swc" append="true"/>
+        </mxmlc>
+    </target>		
+   
+    <target name="certificate" unless="CERTIFICATE_FLAG"
+    	description="generates the ADL certificate" >
+        <java jar="${ADT}" fork="true" failonerror="true">
+            <arg value="-certificate"/>
+            <arg value="-cn"/>
+            <arg value="${CERT_NAME}"/>
+            <arg value="-ou"/>
+            <arg value="${CERT_ORG_UNIT}"/>
+            <arg value="-o"/>
+            <arg value="${CERT_ORG_NAME}"/>
+            <arg value="-c"/>
+            <arg value="${CERT_COUNTRY}"/>
+            <arg value="${CERT_KEY_TYPE}"/>
+            <arg value="${KEYSTORE}"/>
+            <arg value="${CERT_PASSWORD}"/>
+        </java>
+    </target>	
+	
+    <target name="package air"
+        description="packages the build SWF and ADL cert into a .air file">
+        <java jar="${ADT}" fork="true"
+            failonerror="false"
+            maxmemory="512m">
+            <arg value="-package"/>
+            <arg value="-storetype"/>
+            <arg value="${STORETYPE}"/>
+            <arg value="-keystore"/>
+            <arg value="${KEYSTORE}"/>
+            <arg value="-storepass"/>
+            <arg value="${CERT_PASSWORD}"/>
+            <arg value="-tsa" />
+            <arg value="${TIMESERVER}" />
+            <arg value="${RELEASE_DIR}/${PROJECT_NAME}.air"/>
+            <arg value="${DESCRIPTOR_FILE}"/>
+            <arg value="-C"/>
+            <arg value="${BUILD_DIR}"/>
+            <arg value="."/>
+        </java>
+    </target>
+	
+	<!-- I cannot for the life of me get this to work!! -->
+    <target name="package exe">
+        <java jar="${ADT}" fork="true" failonerror="true" maxmemory="512m">
+            <arg value="-package"/>
+            <arg value="-storetype"/>
+            <arg value="${STORETYPE}"/>
+            <arg value="-keystore"/>
+            <arg value="${KEYSTORE}"/>  
+            <arg value="-storepass"/>
+            <arg value="${CERT_PASSWORD}"/>
+            <arg value="-tsa" />
+            <arg value="${TIMESERVER}" />
+            <arg value="-target"/>
+            <arg value="native"/>
+            <arg value="${RELEASE_DIR}/${PROJECT_NAME}.exe" />
+            <arg value="${DESCRIPTOR_FILE}"/>
+            <arg value="-C"/>
+            <arg value="${BUILD_DIR}"/>
+            <arg value="."/>
+        </java>
+    </target>		
+
+    <target name="package dmg">
+        <java jar="${ADT}" fork="true" failonerror="true" maxmemory="512m">
+            <arg value="-package"/>
+            <arg value="-storetype"/>
+            <arg value="${STORETYPE}"/>
+            <arg value="-keystore"/>
+            <arg value="${KEYSTORE}"/>
+            <arg value="-storepass"/>
+            <arg value="${CERT_PASSWORD}"/>
+            <arg value="-tsa" />
+            <arg value="${TIMESERVER}" />
+            <arg value="-target"/>
+            <arg value="native"/>
+            <arg value="${RELEASE_DIR}/${PROJECT_NAME}.dmg" />
+            <arg value="${DESCRIPTOR_FILE}"/>
+            <arg value="-C"/>
+            <arg value="${BUILD_DIR}"/>
+            <arg value="."/>
+        </java>
+    </target>
+
+    <target name="package deb">
+        <java jar="${ADT}" fork="true" failonerror="true" maxmemory="512m">
+            <arg value="-package"/>
+            <arg value="-storetype"/>
+            <arg value="${STORETYPE}"/>
+            <arg value="-keystore"/>
+            <arg value="${KEYSTORE}"/>
+            <arg value="-storepass"/>
+            <arg value="${CERT_PASSWORD}"/>
+            <arg value="-tsa" />
+            <arg value="${TIMESERVER}" />
+            <arg value="-target"/>
+            <arg value="native"/>
+            <arg value="${RELEASE_DIR}/${PROJECT_NAME}.deb" />
+            <arg value="${DESCRIPTOR_FILE}"/>
+            <arg value="-C"/>
+            <arg value="${BUILD_DIR}"/>
+            <arg value="."/>
+        </java>
+    </target>
+
+</project>
